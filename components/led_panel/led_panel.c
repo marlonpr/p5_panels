@@ -222,7 +222,7 @@ void refresh_display_task(void *arg) {
 }
 
 void draw_char(char c, int x, int y, int r, int g, int b) {
-    if (c < 32 || c > 126) return;  // Ignore unsupported chars
+    if (c < 32 || c > 176) return;  // Ignore unsupported chars
 
     const uint8_t* glyph = font5x7[c - 32];
 
@@ -348,4 +348,11 @@ void test_pixel_by_pixel_fill()
     }
 
     vTaskDelay(pdMS_TO_TICKS(1000));
+}
+
+void show_temperature(float temp, int x, int y, int r, int g, int b)
+{
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "Temp: %.2f *C", temp);
+    draw_text(buffer, x, y, r, g, b); // Draw in 
 }

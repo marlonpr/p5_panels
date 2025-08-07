@@ -7,6 +7,8 @@
 #include "esp_log.h"
 #include <string.h>
 #include "inttypes.h"
+#include <stdio.h>
+
 
 
 // === API Functions ===
@@ -33,5 +35,6 @@ void scroll_text(const char *text, int y, int r, int g, int b, int speed_ms);
 void draw_bitmap(const uint8_t *bmp, int w, int h, int x0, int y0, int r, int g, int b);
 void test_pixel_by_pixel_fill();
 
+void show_temperature(float temp, int x, int y, int r, int g, int b);
 
 #endif // LED_PANEL_H
