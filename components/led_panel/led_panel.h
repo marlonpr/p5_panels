@@ -12,32 +12,26 @@
 // === API Functions ===
 void init_pins(void);
 void set_pixel(int x, int y, int r, int g, int b);
-void clear_framebuffer();
-void refresh_display_task(void *arg);
-void test_solid_color(int r, int g, int b);
-void test_checkerboard();
-void test_gradient();
-void test_pixel_by_pixel_fill();
 
+void refresh_display_task(void *arg);
 
 void swap_buffers();
 
 
-void draw_text(const char *str, int x, int y, int r, int g, int b);
-void scroll_text(const char *str, int y, int r, int g, int b);
-
-
 void init_oe_pwm(void);
-
-void init_gamma_table();
-
 void set_global_brightness(uint8_t percent);
-
-void draw_bitmap(int x0, int y0, const uint8_t bmp[], int r, int g, int b);
 
 
 extern uint8_t smiley[];
 
+
+void clear_back_buffer(void);
+
+
+void draw_text(const char *str, int x, int y, int r, int g, int b);
+void scroll_text(const char *text, int y, int r, int g, int b, int speed_ms);
+void draw_bitmap(const uint8_t *bmp, int w, int h, int x0, int y0, int r, int g, int b);
+void test_pixel_by_pixel_fill();
 
 
 #endif // LED_PANEL_H
