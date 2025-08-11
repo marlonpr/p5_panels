@@ -3,6 +3,13 @@
 #include "font5x7.h"
 #include <math.h>
 #include "esp_err.h"
+#include "esp_timer.h"
+
+#include <time.h>
+#include "ds18b20.h"
+
+ 
+
 
 
 #define PIN_R1   GPIO_NUM_2
@@ -10,17 +17,25 @@
 #define PIN_B1   GPIO_NUM_5
 #define PIN_R2   GPIO_NUM_18
 #define PIN_G2   GPIO_NUM_19
-#define PIN_B2   GPIO_NUM_21
+#define PIN_B2   GPIO_NUM_25 //21
 #define PIN_CLK  GPIO_NUM_13
 #define PIN_LAT  GPIO_NUM_12
 #define PIN_OE   GPIO_NUM_14
 #define PIN_A    GPIO_NUM_15
-#define PIN_B    GPIO_NUM_22
+#define PIN_B    GPIO_NUM_33 //22
 #define PIN_C    GPIO_NUM_23
 
 #define NUM_PANELS 2
 #define WIDTH 64 * NUM_PANELS
 #define HEIGHT 32
+
+
+ds18b20_t sensor;
+
+unsigned long millis() {
+    return (unsigned long)(esp_timer_get_time() / 1000ULL); // microseconds to ms
+}
+
 
 void init_pins(void)
 {
@@ -238,11 +253,13 @@ void draw_char(char c, int x, int y, int r, int g, int b) {
 
 
 void draw_text(const char* str, int x, int y, int r, int g, int b) {
-    while (*str) {
-        draw_char(*str++, x, y, r, g, b);
-        x += 6;  // 5 pixels wide + 1 space between chars
+    while (*str) {  
+		draw_char(*str, x, y, r, g, b); // normal char
+        x += 6; // advance position
+        str++;
     }
 }
+
 
 void scroll_text(const char *text, int y, int r, int g, int b, int speed_ms) {
     int len = strlen(text);
@@ -272,7 +289,7 @@ void scroll_text(const char *text, int y, int r, int g, int b, int speed_ms) {
     }
 
     // Scroll loop
-    for (int scroll_x = 0; scroll_x < text_width + WIDTH; scroll_x++) {
+    for (int scroll_x = 0; scroll_x < text_width + WIDTH+1; scroll_x++) {
         clear_back_buffer();
 
         for (int row = 0; row < 7; row++) {
@@ -350,9 +367,82 @@ void test_pixel_by_pixel_fill()
     vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
-void show_temperature(float temp, int x, int y, int r, int g, int b)
+void show_temperature(int x, int y, int r, int g, int b)
 {
-    char buffer[32];
-    snprintf(buffer, sizeof(buffer), "Temp: %.2f *C", temp);
-    draw_text(buffer, x, y, r, g, b); // Draw in 
+	char buffer[32];    
+    // Draw
+    clear_back_buffer();
+
+
+	int16_t temp_int;
+	if (ds18b20_read_temperature_int(&sensor, &temp_int) == ESP_OK) 
+	{
+	    printf("Temperature: %d °C\n", temp_int);
+		snprintf(buffer, sizeof(buffer), "%d *C", temp_int);
+	} 
+	else 
+	{
+	    printf("Failed to read temperature\n");
+		snprintf(buffer, sizeof(buffer), "Failed to read");
+	}
+    draw_text(buffer, x, y, r, g, b); // Draw in
+    swap_buffers();
+	vTaskDelay(pdMS_TO_TICKS(3000)); // update 5× per second for smooth blink timing
+}
+
+void show_time(int x, int y, int r, int g, int b)
+{
+	    bool colon_on = true;
+	    uint32_t last_toggle = 0;
+		int last_second = 0;
+		int sec_count = 0;
+		while (1) {
+	        uint32_t now_ms = esp_timer_get_time() / 1000; // ms
+	
+	        // Toggle colon every 1 second
+	        if (now_ms - last_toggle >= 1000) {
+	            colon_on = !colon_on;
+	            last_toggle = now_ms;
+	        }
+	
+	        // Get current time
+	        time_t now_time = time(NULL);
+	        struct tm timeinfo;
+	        localtime_r(&now_time, &timeinfo);
+	
+	        // Format string with or without colon
+	        char buf[6];
+	        if (colon_on) {
+	            sprintf(buf, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+	        } else {
+	            sprintf(buf, "%02d %02d", timeinfo.tm_hour, timeinfo.tm_min);
+	        }
+	
+	        // Draw
+	        clear_back_buffer();
+	        draw_text(buf, x, y, r, g, b); // green
+	        swap_buffers();
+	
+	        vTaskDelay(pdMS_TO_TICKS(200)); // update 5× per second for smooth blink timing
+	
+			if (timeinfo.tm_sec != last_second) {
+	            last_second = timeinfo.tm_sec;
+				sec_count ++;
+				if(sec_count >= 10)
+					{
+						sec_count = 0;
+						break;
+					}
+					
+	        }
+	    }
+}
+
+
+void show_date(int y, int r, int g, int b)
+{    
+    // Draw
+    clear_back_buffer();
+ 	scroll_text("Lunes 11 Agosto 2025", y, r, g, b, 40);  // red, y=10, speed=40ms per frame
+    swap_buffers();	
 }

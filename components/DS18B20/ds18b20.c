@@ -89,3 +89,28 @@ esp_err_t ds18b20_read_temperature(ds18b20_t *sensor, float *temperature) {
     *temperature = (float)raw_temp / 16.0f;
     return ESP_OK;
 }
+
+esp_err_t ds18b20_read_temperature_int(ds18b20_t *sensor, int16_t *temperature) {
+    if (!sensor || !temperature) return ESP_ERR_INVALID_ARG;
+
+    if (!ds18b20_reset(sensor)) {
+        ESP_LOGE("DS18B20", "Sensor not found");
+        return ESP_FAIL;
+    }
+
+    ds18b20_write_byte(sensor, DS18B20_CMD_SKIP_ROM);
+    ds18b20_write_byte(sensor, DS18B20_CMD_CONVERT_T);
+    vTaskDelay(pdMS_TO_TICKS(750)); // wait conversion
+
+    if (!ds18b20_reset(sensor)) return ESP_FAIL;
+    ds18b20_write_byte(sensor, DS18B20_CMD_SKIP_ROM);
+    ds18b20_write_byte(sensor, DS18B20_CMD_READ_SCRATCH);
+
+    uint8_t lsb = ds18b20_read_byte(sensor);
+    uint8_t msb = ds18b20_read_byte(sensor);
+    int16_t raw_temp = (msb << 8) | lsb;
+
+    *temperature = raw_temp >> 4;  // Divide by 16, truncate fractional part
+
+    return ESP_OK;
+}
